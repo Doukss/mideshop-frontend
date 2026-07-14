@@ -1,0 +1,75 @@
+name: Déploiement Frontend
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/medishop-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Connexion à Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build et push de l'image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Déployer sur l'instance Front
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.FRONT_HOST }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            IMAGE="${{ env.IMAGE_NAME }}:latest"
+
+            if docker inspect frontend >/dev/null 2>&1; then
+              CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' frontend)
+              docker tag "$CURRENT_IMAGE" medishop-frontend:previous || true
+            fi
+
+            docker pull "$IMAGE"
+            docker rm -f frontend || true
+
+            docker run -d \
+              --name frontend \
+              --restart unless-stopped \
+              -p 8080:80 \
+              "$IMAGE"
+
+            sleep 5
+
+            if [ -z "$(docker ps -q -f name=frontend -f status=running)" ]; then
+              echo "Le déploiement a échoué, rollback vers l'image précédente..."
+              docker rm -f frontend || true
+              docker run -d \
+                --name frontend \
+                --restart unless-stopped \
+                -p 8080:80 \
+                medishop-frontend:previous
+              exit 1
+            fi
+
+            echo "Déploiement du frontend réussi."
