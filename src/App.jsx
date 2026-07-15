@@ -127,7 +127,7 @@ export default function App() {
         />
       </main>
 
-      <footer className="app-footer">MediShop</footer>
+      <footer className="app-footer">MediShop- 221</footer>
     </div>
   );
 }
