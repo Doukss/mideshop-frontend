@@ -11,7 +11,7 @@ export default function Header({ apiStatus }) {
         <span className="app-header__mark">MS</span>
         <div>
           <h1 className="app-header__title">MediShop</h1>
-          <p className="app-header__tagline">Tableau des tâches internes</p>
+          <p className="app-header__tagline">Tableau des tâches</p>
         </div>
       </div>
       <div className={`app-header__meta app-header__meta--${apiStatus}`}>
