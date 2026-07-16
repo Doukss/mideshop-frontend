@@ -127,7 +127,7 @@ export default function App() {
         />
       </main>
 
-      <footer className="app-footer">MediShop-tp E221</footer>
+      <footer className="app-footer">MediShop-tp Devops Baba Ly 2026</footer>
     </div>
   );
 }
